@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -13,6 +15,18 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+function AuthenticatedRoute($view, $fallbackRoute) {
+    if (Auth::check()) {
+        return view($view);
+    } else {
+        return redirect($fallbackRoute);
+    }
+}
+
 Route::get('/', function () {
     return view('index');
+});
+
+Route::get('/dashboard', function () {
+    return AuthenticatedRoute("dashboard", "/");
 });

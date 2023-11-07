@@ -1,7 +1,11 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Laravel\Socialite\Facades\Socialite;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -16,4 +20,40 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
+});
+
+Route::group(['middleware' => ['web']], function () {
+    Route::get('/auth/redirect', function () {
+        return Socialite::driver('spotify')->redirect();
+    });
+
+    Route::get('/auth/callback', function () {
+        try {
+            $spotifyUser = Socialite::driver('spotify')->user();
+            $user = User::updateOrCreate([
+                'spotify_id' => $spotifyUser->getId(),
+            ], [
+                'name' => $spotifyUser->name
+            ]);
+
+            Auth::login($user);
+
+            return redirect("/dashboard");
+        } catch (\Throwable $th) {
+            throw $th;
+        }
+    });
+
+    Route::get("/auth/check", function () {
+        if (Auth::check()) {
+            return Auth::getUser();
+        } else {
+            return "Not authenticated";
+        }
+    });
+
+    Route::get("/auth/logout", function () {
+        Auth::logout();
+        return redirect("/");
+    });
 });
