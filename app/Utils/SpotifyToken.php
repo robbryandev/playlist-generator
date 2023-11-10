@@ -16,6 +16,10 @@ class SpotifyToken
     return $this->token;
   }
 
+  public function refresh() {
+    // To-do
+  }
+
   public function expired() {
     return $this->expires <= 0;
   }

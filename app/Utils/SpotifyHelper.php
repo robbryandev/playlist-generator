@@ -5,6 +5,7 @@ use App\Utils\SpotifyToken;
 
 class SpotifyHelper
 {
+  public static $globalToken;
   public static function GetToken(): SpotifyToken {
     $tokenBase = 'https://accounts.spotify.com/api/token';
     $tokenArgs = [
@@ -34,13 +35,34 @@ class SpotifyHelper
     return new SpotifyToken($token, $expires);
   }
 
-  public static function GetRecommendations(SpotifyToken $token, array $artists) {
-    $recommended = curl_init();
+  private static function _GetRequest(string $endpoint, string $queryParams) {
+    if (SpotifyHelper::$globalToken == null or SpotifyHelper::$globalToken->expired()) {
+      SpotifyHelper::$globalToken = SpotifyHelper::GetToken();
+    }
+    $token = SpotifyHelper::$globalToken;
+
+    $curl = curl_init('https://api.spotify.com/v1' . $endpoint . '?' . $queryParams);
+    curl_setopt($curl, CURLOPT_HTTPHEADER, array("Authorization: Bearer {$token->getToken()}", "Content-Type: application/x-www-form-urlencoded"));
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1 );
+    $result = curl_exec($curl);
+
+    return $result;
+  }
+
+  public static function SearchArtist(string $query) {
+    $queryParams = [
+      'q' => $query,
+      'type' => 'artist',
+      'limit' => 5
+    ];
+
+    $result = SpotifyHelper::_GetRequest("/search", http_build_query($queryParams));
+    return $result;
+  }
+
+  public static function GetRecommendations(array $artists) {
     $queryParams = 'seed_artists=' . join(',', $artists);
-    curl_setopt($recommended, CURLOPT_HTTPHEADER, array("Authorization: Bearer {$token->getToken()}", "Content-Type: application/x-www-form-urlencoded"));
-    curl_setopt($recommended, CURLOPT_URL, "https://api.spotify.com/v1/recommendations?$queryParams");
-    curl_setopt($recommended, CURLOPT_RETURNTRANSFER, 1 );
-    $result = curl_exec($recommended);
+    $result = SpotifyHelper::_GetRequest("/recommendations", $queryParams);
     return $result;
   }
 }
