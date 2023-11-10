@@ -23,16 +23,13 @@ use App\Utils\SpotifyHelper;
     <?php
       $token = SpotifyHelper::GetToken();
       if (!$token->expired()) {
-        $recommendTest = curl_init();
-        $recommendData = [
-          'seed_artists' => '6vw3QQUYW5TSxqsEvI28W6,77xhQrX7SvDUgGZoJiFNdn,6xTk3EK5T9UzudENVvu9YB',
+        $artistData = [
+          '6vw3QQUYW5TSxqsEvI28W6',
+          '77xhQrX7SvDUgGZoJiFNdn',
+          '6xTk3EK5T9UzudENVvu9YB'
         ];
-        $queryParams = http_build_query($recommendData);
-        curl_setopt($recommendTest, CURLOPT_HTTPHEADER, array("Authorization: Bearer {$token->getToken()}", "Content-Type: application/x-www-form-urlencoded"));
-        curl_setopt($recommendTest, CURLOPT_URL, "https://api.spotify.com/v1/recommendations?$queryParams");
-        curl_setopt($recommendTest, CURLOPT_RETURNTRANSFER, 1 );
-        $recommendResult = curl_exec($recommendTest);
-        echo($recommendResult . "<br>");
+        $recommendResult = SpotifyHelper::GetRecommendations($token, $artistData);
+        echo('recommendations: ' . $recommendResult . "<br>");
       }
     ?>
   </p>
