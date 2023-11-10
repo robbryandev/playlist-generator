@@ -24,14 +24,16 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::group(['middleware' => ['web']], function () {
     Route::get('/auth/redirect', function () {
-        return Socialite::driver('spotify')->redirect();
+        $redirectSpotify = Socialite::driver('spotify')->redirect();
+        return $redirectSpotify;
     });
 
     Route::get('/auth/callback', function () {
         try {
-            $spotifyUser = Socialite::driver('spotify')->user();
+            $code = request('code');
+            $spotifyUser = Socialite::driver("spotify")->user();
             $user = User::updateOrCreate([
-                'spotify_id' => $spotifyUser->getId(),
+                'spotify_id' => $spotifyUser->getId()
             ], [
                 'name' => $spotifyUser->name
             ]);
