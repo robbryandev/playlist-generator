@@ -66,7 +66,7 @@ Route::get("/spotify/artists", function () {
     $searchString = SpotifyHelper::SearchArtist($query);
     $searchResults = json_decode($searchString, true);
     $artistTemplate = "
-    <div class='bg-neutral-100 hover:bg-neutral-200 rounded-md flex flex-row px-2 py-1 cursor-pointer'>
+    <div id='--id' class='search-result bg-neutral-100 hover:bg-neutral-200 rounded-md flex flex-row px-2 py-1 cursor-pointer'>
         <img class='pr-4 aspect-square' src='--img'
           alt='--name'>
         <div class='flex flex-col'>
@@ -82,6 +82,7 @@ Route::get("/spotify/artists", function () {
 
     foreach ($searchResults['artists']['items'] as $artist) {
         $newArtist = str_replace("--name", $artist['name'], $artistTemplate);
+        $newArtist = str_replace("--id", $artist['id'], $newArtist);
         $newArtist = str_replace("--genres", join(', ', $artist['genres']), $newArtist);
         $newArtist = str_replace("--img", $artist['images'][count($artist['images']) - 1]['url'], $newArtist);
         array_push($result, $newArtist);

@@ -11,11 +11,12 @@
   <link rel="preconnect" href="https://fonts.bunny.net">
   <link href="https://fonts.bunny.net/css?family=figtree:400,600&display=swap" rel="stylesheet" />
   @vite('resources/css/app.css')
+  @vite('resources/js/app.js')
   @vite('resources/js/htmx.min.js')
 </head>
 
 <body class="antialiased">
-  <form hx-get='/api/spotify/artists' hx-target='#artist-results'>
+  <form id="artist-search" hx-get='/api/spotify/artists' hx-target='#artist-results'>
     <label for="query">Artist Search</label>
     <input name="query" type="text">
     <button type="submit">Search</button>
