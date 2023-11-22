@@ -50,9 +50,6 @@ export default defineComponent({
     }
   },
   methods: {
-    addArtist(artist: Artist) {
-      this.selectedArtists.push(artist);
-    },
     async getArtists(query: string) {
       try {
         const res = await fetch(`/api/spotify/artists?query=${query}`);
