@@ -1,33 +1,43 @@
 <template>
-  <div id="artist-picked" class="max-w-sm md:min-w-min md:max-w-md space-y-2">
-    <div class="flex flex-row h-24 bg-neutral-700 p-2 rounded-md" v-for="artist in this.selectedArtists" :key="artist.id">
-      <img class="rounded-full aspect-square" v-bind:src="artist.img" v-bind:alt="'Picture of ' + artist.name">
-      <button class="bg-red-500 rounded-full w-6 h-6 font-semibold self-center ml-4" v-on:click="() => {
-        this.selectedArtists = this.selectedArtists.filter((fArtist) => {
-          return fArtist.id != artist.id;
-        });
-      }">x</button>
-      <p class="self-center pl-2 text-lg">{{ artist.name }}</p>
+  <div class="flex flex-col justify-center items-center w-full h-[80vh] gap-4">
+    <div id="artist-picked" class="max-w-sm md:min-w-min md:max-w-md space-y-2">
+      <div class="flex flex-row h-24 bg-neutral-700 p-2 rounded-md" v-for="artist in this.selectedArtists"
+        :key="artist.id">
+        <img class="rounded-full aspect-square" v-bind:src="artist.img" v-bind:alt="'Picture of ' + artist.name">
+        <button class="bg-red-500 rounded-full w-6 h-6 font-semibold self-center ml-4" v-on:click="() => {
+          this.selectedArtists = this.selectedArtists.filter((fArtist) => {
+            return fArtist.id != artist.id;
+          });
+        }">x</button>
+        <p class="self-center pl-2 text-lg">{{ artist.name }}</p>
+      </div>
     </div>
-  </div>
 
-  <form id="artist-search" v-on:submit="(event) => {
-    event.preventDefault();
-    this.getArtists(this.queryString);
-  }">
-    <label for="query">Artist Search</label>
-    <input class="text-black" name="query" type="text" v-model="this.queryString">
-    <button type="submit">Search</button>
-  </form>
+    <form v-if="this.selectedArtists.length < 5" class="w-1/4" id="artist-search" v-on:submit="(event) => {
+      event.preventDefault();
+      this.searchArtists = [];
+      this.getArtists(this.queryString);
+    }">
+      <div class="flex flex-row gap-0 justify-center">
+        <input class="text-black px-4 py-2 rounded-l-md" placeholder="Artist Search" name="query" type="text"
+          v-model="this.queryString">
+        <button class="rounded-r-md bg-neutral-600 hover:bg-gray-500 place-self-center self-stretch px-4"
+          type="submit">Search</button>
+      </div>
+    </form>
 
-  <div id="artist-results" class="max-w-sm md:min-w-min md:max-w-md space-y-2">
-    <div class="flex flex-row h-24 bg-neutral-700 hover:bg-gray-600 cursor-pointer p-2 rounded-md"
-      v-for="artist in this.searchArtists" :key="artist.id" v-on:click="() => {
-        this.selectedArtists.push(artist);
-        this.searchArtists = [];
-      }">
-      <img class="rounded-full aspect-square" v-bind:src="artist.img" v-bind:alt="'Picture of ' + artist.name">
-      <p class="self-center pl-6 text-lg">{{ artist.name }}</p>
+    <button v-if="this.selectedArtists.length === 5">Generate Playlist</button>
+
+    <div id="artist-results" class="min-w-min max-w-md space-y-2">
+      <div class="flex flex-row h-24 bg-neutral-700 hover:bg-gray-600 cursor-pointer py-2 px-4 rounded-md"
+        v-for="artist in   this.searchArtists  " :key="artist.id" v-on:click="() => {
+          this.selectedArtists.push(artist);
+          this.queryString = '';
+          this.searchArtists = [];
+        }">
+        <img class="rounded-full aspect-square" v-bind:src="artist.img" v-bind:alt="'Picture of ' + artist.name">
+        <p class="self-center pl-6 text-lg float-left">{{ artist.name }}</p>
+      </div>
     </div>
   </div>
 </template>
@@ -51,6 +61,9 @@ export default defineComponent({
   },
   methods: {
     async getArtists(query: string) {
+      if (query === "") {
+        return
+      }
       try {
         const res = await fetch(`/api/spotify/artists?query=${query}`);
         if (res.ok) {
