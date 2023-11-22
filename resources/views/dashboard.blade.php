@@ -12,16 +12,11 @@
   <link href="https://fonts.bunny.net/css?family=figtree:400,600&display=swap" rel="stylesheet" />
   @vite('resources/css/app.css')
   @vite('resources/js/app.js')
-  @vite('resources/js/htmx.min.js')
 </head>
 
-<body class="antialiased">
-  <form id="artist-search" hx-get='/api/spotify/artists' hx-target='#artist-results'>
-    <label for="query">Artist Search</label>
-    <input name="query" type="text">
-    <button type="submit">Search</button>
-  </form>
-  <div id="artist-results" class="max-w-sm md:min-w-min md:max-w-md">
+<body class="antialiased bg-neutral-800 text-white">
+  <div id="app">
+    <dashboard-page>
   </div>
   <a href="/api/auth/logout">Logout</a>
 </body>

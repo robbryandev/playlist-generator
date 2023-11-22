@@ -60,33 +60,31 @@ Route::group(['middleware' => ['web']], function () {
     });
 });
 
+class SpotifyArtist {
+    public string $id;
+    public string $name;
+    public string $img;
+    function __construct(string $id, string $name, string $img) {
+        $this->id = $id;
+        $this->name = $name;
+        $this->img = $img;
+    }
+}
+
 Route::get("/spotify/artists", function () {
     $result = [];
     $query = request('query');
     $searchString = SpotifyHelper::SearchArtist($query);
     $searchResults = json_decode($searchString, true);
-    $artistTemplate = "
-    <div id='--id' class='search-result bg-neutral-100 hover:bg-neutral-200 rounded-md flex flex-row px-2 py-1 cursor-pointer'>
-        <img class='pr-4 aspect-square' src='--img'
-          alt='--name'>
-        <div class='flex flex-col'>
-          <h1 class='text-2xl'>--name</h1>
-          <h2 class=''>--genres</h2>
-        </div>
-    </div>
-    ";
 
     if (!isset($searchResults['artists']) or $searchResults['artists']['total'] == 0) {
         return "0 results found";
     }
 
     foreach ($searchResults['artists']['items'] as $artist) {
-        $newArtist = str_replace("--name", $artist['name'], $artistTemplate);
-        $newArtist = str_replace("--id", $artist['id'], $newArtist);
-        $newArtist = str_replace("--genres", join(', ', $artist['genres']), $newArtist);
-        $newArtist = str_replace("--img", $artist['images'][count($artist['images']) - 1]['url'], $newArtist);
+        $newArtist = new SpotifyArtist($artist['id'], $artist['name'], $artist['images'][0]['url']);
         array_push($result, $newArtist);
     }
 
-    return count($result) > 0 ? join("\n", $result) : "Error with results";
+    return count($result) > 0 ? $result : "Error with results";
 });
