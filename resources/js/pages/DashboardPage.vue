@@ -44,8 +44,24 @@
       </div>
     </div>
   </div>
-  <div v-else class="flex flex-col justify-center items-center w-full h-[80vh] gap-4">
-    <p>Put playlist info here</p>
+  <div v-else class="flex flex-col justify-center items-center w-full min-h-[80vh] gap-4">
+    <div id="user-playlist" class="max-w-sm md:min-w-min md:max-w-md space-y-2">
+      <div class="flex flex-row h-24 bg-neutral-700 p-2 rounded-md" v-for="track in this.currentPlaylist" :key="track.id">
+        <img class="rounded-full aspect-square" v-bind:src="track.img" v-bind:alt="'Album art of ' + track.name">
+        <button class="bg-red-500 rounded-full w-6 h-6 font-semibold self-center ml-4" v-on:click="() => {
+          this.currentPlaylist = this.currentPlaylist.filter((fTrack) => {
+            return fTrack.id != track.id;
+          });
+        }">x</button>
+        <div>
+          <p class="self-center pl-2 text-lg font-medium">{{ track.name }}</p>
+          <p class="self-center pl-2 text-base">{{ track.artistName }}</p>
+        </div>
+        <audio controls v-bind:src="track.preview">
+          unsupported preview
+        </audio>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -58,13 +74,22 @@ type Artist = {
   img: string
 }
 
+type Track = {
+  id: string,
+  name: string,
+  artistName: string,
+  preview: string,
+  img: string
+}
+
 export default defineComponent({
   data() {
     return {
       showPlaylist: false,
       queryString: "",
       selectedArtists: [] as Artist[],
-      searchArtists: [] as Artist[]
+      searchArtists: [] as Artist[],
+      currentPlaylist: [] as Track[]
     }
   },
   methods: {
@@ -94,7 +119,8 @@ export default defineComponent({
         if (playlistRes.ok) {
           const txtRes = await playlistRes.text();
           this.showPlaylist = true;
-          console.log(txtRes);
+          const jsonTxt = JSON.parse(txtRes);
+          this.currentPlaylist = [...jsonTxt];
         }
       } catch (error) {
         console.log(error);

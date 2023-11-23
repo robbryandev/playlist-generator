@@ -90,8 +90,40 @@ Route::get("/artists", function () {
     return count($result) > 0 ? $result : "Error with results";
 });
 
+class SpotifyTrack {
+    public string $id;
+    public string $name;
+    public string $artistName;
+    public string $preview;
+    public string $img;
+    function __construct(string $id, string $name, string $artistName, string $preview, string $img) {
+        $this->id = $id;
+        $this->name = $name;
+        $this->artistName = $artistName;
+        $this->preview = $preview;
+        $this->img = $img;
+    }
+}
+
 Route::get("/playlist/new", function () {
-    // $result = [];
+    $result = [];
     $seedArtists = request('artists');
-    return "Got list of artist ids: {$seedArtists}";
+    $recommendations = SpotifyHelper::GetRecommendations(explode(',', $seedArtists));
+    $jsonRec = json_decode($recommendations, true);
+    foreach ($jsonRec['tracks'] as $track) {
+        $trackId = $track['id'];
+        $trackName = $track['name'];
+        $trackArtist = $track['artists'][0]['name'];
+        $trackPreview = '';
+        if (isset($track['preview_url'])) {
+            $trackPreview = $track['preview_url'];
+        }
+        $trackImg = '';
+        if (count($track['album']['images']) > 0) {
+            $trackImg = $track['album']['images'][0]['url'];
+        }
+        $newTrack = new SpotifyTrack($trackId, $trackName, $trackArtist, $trackPreview, $trackImg);
+        array_push($result, $newTrack);
+    }
+    return count($result) > 0 ? $result : "Error with results";
 });
