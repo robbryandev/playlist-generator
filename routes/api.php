@@ -71,7 +71,7 @@ class SpotifyArtist {
     }
 }
 
-Route::get("/spotify/artists", function () {
+Route::get("/artists", function () {
     $result = [];
     $query = request('query');
     $searchString = SpotifyHelper::SearchArtist($query);
@@ -82,9 +82,16 @@ Route::get("/spotify/artists", function () {
     }
 
     foreach ($searchResults['artists']['items'] as $artist) {
-        $newArtist = new SpotifyArtist($artist['id'], $artist['name'], $artist['images'][0]['url']);
+        $artistImage = count($artist['images']) > 0 ? $artist['images'][0]['url'] : "";
+        $newArtist = new SpotifyArtist($artist['id'], $artist['name'], $artistImage);
         array_push($result, $newArtist);
     }
 
     return count($result) > 0 ? $result : "Error with results";
+});
+
+Route::get("/playlist/new", function () {
+    // $result = [];
+    $seedArtists = request('artists');
+    return "Got list of artist ids: {$seedArtists}";
 });
