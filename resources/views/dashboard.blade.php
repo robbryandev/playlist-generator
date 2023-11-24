@@ -14,7 +14,7 @@
   @vite('resources/js/app.js')
 </head>
 
-<body class="antialiased bg-neutral-800 text-white overflow-y-scroll">
+<body class="antialiased bg-neutral-800 text-white">
   <div class="py-2 px-4">
     <a class="font-semibold hover:text-neutral-200 dark:text-gray-400 dark:hover:text-white focus:outline focus:outline-2 focus:rounded-sm"
       href="/api/auth/logout">Logout</a>
