@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\User;
-use App\Utils\SpotifyHelper;
+use App\Classes\SpotifyHelper;
+use App\Classes\SpotifyArtist;
+use App\Classes\SpotifyTrack;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -60,17 +62,6 @@ Route::group(['middleware' => ['web']], function () {
     });
 });
 
-class SpotifyArtist {
-    public string $id;
-    public string $name;
-    public string $img;
-    function __construct(string $id, string $name, string $img) {
-        $this->id = $id;
-        $this->name = $name;
-        $this->img = $img;
-    }
-}
-
 Route::get("/artists", function () {
     $result = [];
     $query = request('query');
@@ -90,21 +81,6 @@ Route::get("/artists", function () {
     return count($result) > 0 ? $result : "Error with results";
 });
 
-class SpotifyTrack {
-    public string $id;
-    public string $name;
-    public string $artistName;
-    public string $preview;
-    public string $img;
-    function __construct(string $id, string $name, string $artistName, string $preview, string $img) {
-        $this->id = $id;
-        $this->name = $name;
-        $this->artistName = $artistName;
-        $this->preview = $preview;
-        $this->img = $img;
-    }
-}
-
 Route::get("/playlist/new", function () {
     $result = [];
     $seedArtists = request('artists');
@@ -114,14 +90,8 @@ Route::get("/playlist/new", function () {
         $trackId = $track['id'];
         $trackName = $track['name'];
         $trackArtist = $track['artists'][0]['name'];
-        $trackPreview = '';
-        if (isset($track['preview_url'])) {
-            $trackPreview = $track['preview_url'];
-        }
-        $trackImg = '';
-        if (count($track['album']['images']) > 0) {
-            $trackImg = $track['album']['images'][0]['url'];
-        }
+        $trackPreview = isset($track['preview_url']) ? $track['preview_url'] : '';
+        $trackImg = count($track['album']['images']) > 0 ? $track['album']['images'][0]['url'] : '';
         $newTrack = new SpotifyTrack($trackId, $trackName, $trackArtist, $trackPreview, $trackImg);
         array_push($result, $newTrack);
     }

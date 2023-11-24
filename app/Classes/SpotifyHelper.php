@@ -1,7 +1,7 @@
 <?php
 
-namespace App\Utils;
-use App\Utils\SpotifyToken;
+namespace App\Classes;
+use App\Classes\SpotifyToken;
 
 class SpotifyHelper
 {

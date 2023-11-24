@@ -45,6 +45,10 @@
     </div>
   </div>
   <div v-else class="flex flex-col justify-center items-center w-full min-h-[80vh] gap-4">
+    <div id="song-preview">
+      <AudioPlayer ref="previewPlayer" v-bind:src="this.previewSong" v-bind:song="this.previewSongName"
+        v-bind:artist="this.previewSongArtist" />
+    </div>
     <div id="user-playlist" class="max-w-sm md:min-w-min md:max-w-md space-y-2">
       <div class="flex flex-row h-24 bg-neutral-700 p-2 rounded-md" v-for="track in this.currentPlaylist" :key="track.id">
         <img class="rounded-full aspect-square" v-bind:src="track.img" v-bind:alt="'Album art of ' + track.name">
@@ -57,9 +61,12 @@
           <p class="self-center pl-2 text-lg font-medium">{{ track.name }}</p>
           <p class="self-center pl-2 text-base">{{ track.artistName }}</p>
         </div>
-        <audio controls v-bind:src="track.preview">
-          unsupported preview
-        </audio>
+        <button v-if="track.preview !== ''" class="px-2" v-on:click="() => {
+          this.previewSong = track.preview;
+          this.previewSongName = track.name;
+          this.previewSongArtist = track.artistName;
+          this.playPreview();
+        }">preview</button>
       </div>
     </div>
   </div>
@@ -67,6 +74,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import AudioPlayer from '../components/AudioPlayer.vue';
 
 type Artist = {
   id: string,
@@ -87,6 +95,9 @@ export default defineComponent({
     return {
       showPlaylist: false,
       queryString: "",
+      previewSong: "",
+      previewSongName: "",
+      previewSongArtist: "",
       selectedArtists: [] as Artist[],
       searchArtists: [] as Artist[],
       currentPlaylist: [] as Track[]
@@ -125,6 +136,11 @@ export default defineComponent({
       } catch (error) {
         console.log(error);
       }
+    },
+    playPreview() {
+      setTimeout(() => {
+        this.$refs.previewPlayer.play();
+      }, 250)
     }
   }
 });
