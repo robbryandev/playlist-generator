@@ -108,6 +108,7 @@ type Track = {
 export default defineComponent({
   data() {
     return {
+      csrf: document.querySelector('meta[name="csrf-token"]')!.getAttribute('content'),
       showPlaylist: false,
       queryString: "",
       previewSong: "",
@@ -159,7 +160,18 @@ export default defineComponent({
       }, 250)
     },
     async savePlaylist() {
-      // implement save playlist api route first
+      const bodyTest = await fetch("/api/playlist/save", {
+        "method": "POST",
+        'headers': { 'X-CSRF-TOKEN': this.csrf },
+        "body": JSON.stringify({
+          "name": this.playlistName,
+          "tracks": this.currentPlaylist.map((track) => {
+            return track.id;
+          })
+        })
+      });
+      const bodyTxt = await bodyTest.text();
+      console.log(bodyTxt);
     }
   }
 });
