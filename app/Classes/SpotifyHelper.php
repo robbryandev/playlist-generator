@@ -84,7 +84,26 @@ class SpotifyHelper
   }
 
   public static function GetUserToken(string $accessCode): SpotifyToken|null {
-    return null;
+    // Args
+    $reqArgs = [
+      "code={$accessCode}",
+      "redirect_uri={$_ENV['SPOTIFY_ACCESS_REDIRECT']}",
+      "grant_type=authorization_code"
+    ];
+
+    // Call the Spotify API
+    $curl = curl_init('https://accounts.spotify.com/api/token?' . join('&', $reqArgs));
+    $encodedString = base64_decode($_ENV['SPOTIFY_CLIENT_ID'] . ':' . $_ENV['SPOTIFY_CLIENT_SECRET']);
+
+    curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+      "Authorization: Basic {$encodedString}",
+      "Content-Type: application/x-www-form-urlencoded"
+    ));
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1 );
+
+    $result = curl_exec($curl);
+    $jsonRes = is_string($result) ? json_encode($result) : null;
+    return isset($jsonRes) ? new SpotifyToken($jsonRes['access_token'], $jsonRes['expires_in']) : null;
   }
 
   public static function SearchArtist(string $query) {

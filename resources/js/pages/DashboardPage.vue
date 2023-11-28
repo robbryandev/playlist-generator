@@ -178,9 +178,19 @@ export default defineComponent({
       const res = await checkPermission();
       console.log(`permission: ${res}`);
       return res;
+    },
+    async debug() {
+      const res = await fetch('/api/debug/cookie');
+      const resTxt = await res.text();
+      return resTxt;
     }
   },
   mounted() {
+    this.debug().then((debugRes) => {
+      console.log(debugRes);
+    }).catch((err) => {
+      console.log(err);
+    });
     this.checkPermission().then((permRes) => {
       this.hasPermission = permRes;
     }).catch((err) => {

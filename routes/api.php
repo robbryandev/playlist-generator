@@ -60,6 +60,10 @@ Route::group(['middleware' => ['web']], function () {
 
     Route::get('/auth/callback', function () {
         try {
+            $error = request('error');
+            if (isset($error)) {
+                return redirect('/');
+            }
             $spotifyUser = Socialite::driver("spotify")->user();
             $user = User::updateOrCreate([
                 'spotify_id' => $spotifyUser->getId()
@@ -83,30 +87,49 @@ Route::group(['middleware' => ['web']], function () {
         }
     });
 
+    Route::get("/debug/cookie", function () {
+        $cached = Cookie::has('access_token');
+        if ($cached) {
+            $tokenCache = Cookie::get('access_token');
+            if (!isset($tokenCache)) {
+                return 'false';
+            }
+            $tokenCookie = json_decode($tokenCache, true);
+            return json_encode($tokenCookie);
+        } else {
+            return 'no cookie';
+        }
+    });
+
     Route::get("/auth/check/access", function (Request $request) {
         if (!Auth::check()) {
             return "false";
         }
-        // $minutes = 60;
+        $minutes = 60;
         $user = Auth::getUser();
         $access = $user['spotify_access'];
         $result = isset($access);
         if (!$result) {
             return 'false';
         }
-        // $token = null;
-        // $cached = Cookie::has('access_token');
-        // if ($cached) {
-        //     $tokenCookie = json_encode(Cookie::get('access_token'));
-        //     $token = new SpotifyToken($tokenCookie['token'], $tokenCookie['expires']);
-        // } elseif (!$cached || isset($token) && $token->expired()) {
-        //     $token = SpotifyHelper::GetUserToken($access);
-        // }
-        // $token = Cookie::has('access_token') ? json_decode(Cookie::get('access_token')) : SpotifyHelper::GetUserToken($access);
-        // return response('true')->cookie(
-        //     'access_token', json_encode($token), $minutes
-        // );
-        return 'true';
+        $token = null;
+        $cached = Cookie::has('access_token');
+        if ($cached) {
+            $tokenCache = Cookie::get('access_token');
+            if (!isset($tokenCache)) {
+                return 'false';
+            }
+            $tokenCookie = json_decode($tokenCache, true);
+            $token = new SpotifyToken($tokenCookie['token'], $tokenCookie['expires']);
+        }
+        if (!$cached || isset($token) && $token->expired()) {
+            $token = SpotifyHelper::GetUserToken($access);
+        }
+        $token = Cookie::has('access_token') ? json_decode(Cookie::get('access_token')) : SpotifyHelper::GetUserToken($access);
+        return response('true')->cookie(
+            'access_token', json_encode($token), $minutes
+        );
+        //return 'true';
     });
 
     Route::get("/auth/logout", function () {
