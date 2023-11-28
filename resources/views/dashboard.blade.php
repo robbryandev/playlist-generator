@@ -21,11 +21,7 @@
       href="/api/auth/logout">Logout</a>
   </div>
   <div id="app">
-    @auth
     <dashboard-page>
-      @else
-      <p>unauthenticated</p>
-      @endauth
   </div>
 </body>
 

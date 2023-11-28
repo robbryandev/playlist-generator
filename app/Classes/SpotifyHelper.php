@@ -46,7 +46,7 @@ class SpotifyHelper
   public static function GetToken(): SpotifyToken {
     $tokenBase = 'https://accounts.spotify.com/api/token';
     $tokenArgs = [
-      "grant_type=authorization_code",
+      "grant_type=client_credentials",
       "client_id={$_ENV['SPOTIFY_CLIENT_ID']}",
       "client_secret={$_ENV['SPOTIFY_CLIENT_SECRET']}"
     ];
@@ -62,6 +62,10 @@ class SpotifyHelper
     }
 
     return new SpotifyToken($token, $expires);
+  }
+
+  public static function GetUserToken(string $accessCode): SpotifyToken|null {
+    return null;
   }
 
   public static function SearchArtist(string $query) {

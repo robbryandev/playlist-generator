@@ -1,5 +1,7 @@
 <?php
 
+use App\Classes\SpotifyToken;
+use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Classes\SpotifyHelper;
 use App\Classes\SpotifyArtist;
@@ -7,6 +9,7 @@ use App\Classes\SpotifyTrack;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Cookie;
 use Laravel\Socialite\Facades\Socialite;
 
 
@@ -26,38 +29,47 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::group(['middleware' => ['web']], function () {
+// AUTH
     Route::get('/auth/redirect', function () {
-        $tokenBase = 'https://accounts.spotify.com/authorize?';
-        $tokenArgs = [
-          "response_type=code",
-          "scope=playlist-modify-public,playlist-modify-private",
-          "client_id={$_ENV['SPOTIFY_CLIENT_ID']}",
-          "redirect_uri={$_ENV['SPOTIFY_REDIRECT_URI']}"
+        $redirectSpotify = Socialite::driver('spotify')->redirect();
+        return $redirectSpotify;
+    });
+
+    Route::get('/auth/permission', function () {
+        $permissionBase = 'https://accounts.spotify.com/authorize?';
+        $permissionArgs = [
+            'response_type=code',
+            "client_id={$_ENV['SPOTIFY_CLIENT_ID']}",
+            'scope=playlist-modify-public,playlist-modify-private',
+            "redirect_uri={$_ENV['SPOTIFY_ACCESS_REDIRECT']}"
         ];
+        $permissionRedirect = $permissionBase . urldecode(join('&', $permissionArgs));
+        return redirect($permissionRedirect);
+    });
 
-        $callbackUrl = $tokenBase . join('&', $tokenArgs);
-
-        return redirect($callbackUrl);
+    Route::get('/auth/permission/callback', function () {
+        $error = request('error');
+        if (isset($error) or !Auth::check()) {
+            return redirect('/');
+        }
+        $code = request('code');
+        $user = Auth::getUser();
+        DB::update('update users set spotify_access = ? where spotify_id = ?',[urldecode($code), $user['spotify_id']]);
+        return redirect('/dashboard');
     });
 
     Route::get('/auth/callback', function () {
         try {
-            $error = request('error');
-            if (isset($error)) {
-                return redirect('/');
-            }
+            $spotifyUser = Socialite::driver("spotify")->user();
+            $user = User::updateOrCreate([
+                'spotify_id' => $spotifyUser->getId()
+            ], [
+                'name' => $spotifyUser->name
+            ]);
 
-            $requestCode = request('code');
+            Auth::login($user);
 
-            // $user = User::updateOrCreate([
-            //     'spotify_id' => $spotifyUser->getId()
-            // ], [
-            //     'name' => $spotifyUser->name
-            // ]);
-
-            // Auth::login($user);
-
-            // return redirect("/dashboard");
+            return redirect("/dashboard");
         } catch (\Throwable $th) {
             throw $th;
         }
@@ -71,11 +83,39 @@ Route::group(['middleware' => ['web']], function () {
         }
     });
 
+    Route::get("/auth/check/access", function (Request $request) {
+        if (!Auth::check()) {
+            return "false";
+        }
+        // $minutes = 60;
+        $user = Auth::getUser();
+        $access = $user['spotify_access'];
+        $result = isset($access);
+        if (!$result) {
+            return 'false';
+        }
+        // $token = null;
+        // $cached = Cookie::has('access_token');
+        // if ($cached) {
+        //     $tokenCookie = json_encode(Cookie::get('access_token'));
+        //     $token = new SpotifyToken($tokenCookie['token'], $tokenCookie['expires']);
+        // } elseif (!$cached || isset($token) && $token->expired()) {
+        //     $token = SpotifyHelper::GetUserToken($access);
+        // }
+        // $token = Cookie::has('access_token') ? json_decode(Cookie::get('access_token')) : SpotifyHelper::GetUserToken($access);
+        // return response('true')->cookie(
+        //     'access_token', json_encode($token), $minutes
+        // );
+        return 'true';
+    });
+
     Route::get("/auth/logout", function () {
         Auth::logout();
         return redirect("/");
     });
 
+
+// SPOTIFY
     Route::get("/artists", function () {
         $result = [];
         $query = request('query');

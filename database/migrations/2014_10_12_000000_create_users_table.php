@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('spotify_id');
+            $table->text('spotify_access')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
