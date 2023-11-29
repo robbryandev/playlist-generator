@@ -3,6 +3,8 @@
 namespace App\Classes;
 use App\Classes\SpotifyToken;
 
+use function PHPUnit\Framework\isEmpty;
+
 class SpotifyHelper
 {
   public static $globalToken;
@@ -23,38 +25,45 @@ class SpotifyHelper
     return $result;
   }
 
-  private static function _PostRequest(string $endpoint, array $body, bool $usesToken) {
-    # Turn the body array into a string
-    $argString = join('&', $body);
-    # Initialize a curl object
+  private static function _BodyRequest(string $method, string $endpoint, array $body, bool $usesToken, bool $json = false, string $customAuth = '') {
+    // If $json is true, encode the body as a JSON string
+    ob_start();
+    $out = fopen('php://stdout', 'w');
+    $args = $json ? json_encode($body) : http_build_query($body);
+
     $postCurl = curl_init();
 
-    # Set the url to the endpoint
+    curl_setopt($postCurl, CURLOPT_VERBOSE, 1);
+    curl_setopt($postCurl, CURLOPT_STDERR, $out);
     curl_setopt($postCurl, CURLOPT_URL, str_starts_with($endpoint, 'https://accounts') ? $endpoint : 'https://api.spotify.com/v1' . $endpoint );
-    # Set the request type to POST
-    curl_setopt($postCurl, CURLOPT_POST, 1 );
-    # If the endpoint uses a token, include the token in the request
+    curl_setopt($postCurl, CURLOPT_CUSTOMREQUEST, $method);
+
     if ($usesToken) {
-      # If the global token is null or expired, get a new token
       if (SpotifyHelper::$globalToken == null or SpotifyHelper::$globalToken->expired()) {
-        SpotifyHelper::$globalToken = SpotifyHelper::GetToken();
+          SpotifyHelper::$globalToken = SpotifyHelper::GetToken();
       }
       $token = SpotifyHelper::$globalToken;
-      # Set the Authorization header to the token
-      curl_setopt($postCurl, CURLOPT_HTTPHEADER, array("Authorization: Bearer {$token->getToken()}", "Content-Type: application/x-www-form-urlencoded"));
+  
+      $authHeader = empty($customAuth) ? "Bearer {$token->getToken()}" : $customAuth;
+  
+      curl_setopt($postCurl, CURLOPT_HTTPHEADER, array(
+          'Authorization: ' . $authHeader,
+          "Content-Type: " . ($json ? "application/json" : "application/x-www-form-urlencoded")
+      ));
     } else {
-      # If the endpoint doesn't use a token, don't include the token
-      curl_setopt($postCurl, CURLOPT_HTTPHEADER, array("Content-Type: application/x-www-form-urlencoded"));
+      curl_setopt($postCurl, CURLOPT_HTTPHEADER, array("Content-Type: " . ($json ? "application/json" : "application/x-www-form-urlencoded")));
     }
-    # Set curl to return the response
-    curl_setopt($postCurl, CURLOPT_RETURNTRANSFER, 1 );
-    # Set the body of the request
-    curl_setopt($postCurl, CURLOPT_POSTFIELDS, $argString );
 
-    # Execute the request and decode the response
+    curl_setopt($postCurl, CURLOPT_RETURNTRANSFER, 1 );
+    curl_setopt($postCurl, CURLOPT_POSTFIELDS, $args );
+
     $postResult = get_object_vars(json_decode(curl_exec($postCurl)));
+
+    fclose($out);
+    $debug = ob_get_clean();
+
     return $postResult;
-  }
+}
 
   public static function GetToken(): SpotifyToken {
     // The endpoint to send our request to
@@ -62,13 +71,13 @@ class SpotifyHelper
 
     // The data to send in our request
     $tokenArgs = [
-      "grant_type=client_credentials",
-      "client_id={$_ENV['SPOTIFY_CLIENT_ID']}",
-      "client_secret={$_ENV['SPOTIFY_CLIENT_SECRET']}"
+      "grant_type" => "client_credentials",
+      "client_id" => $_ENV['SPOTIFY_CLIENT_ID'],
+      "client_secret" => $_ENV['SPOTIFY_CLIENT_SECRET']
     ];
 
     // Send a POST request to the token endpoint
-    $tokenResult = SpotifyHelper::_PostRequest($tokenBase, $tokenArgs, false);
+    $tokenResult = SpotifyHelper::_BodyRequest('POST', $tokenBase, $tokenArgs, false);
 
     // Extract the token and expiration date from the response
     $token = "";
@@ -83,27 +92,21 @@ class SpotifyHelper
     return new SpotifyToken($token, $expires);
   }
 
-  public static function GetUserToken(string $accessCode): SpotifyToken|null {
+  public static function GetUserToken(string $accessCode) {
+    $tokenBase = 'https://accounts.spotify.com/api/token';
+
     // Args
     $reqArgs = [
-      "code={$accessCode}",
-      "redirect_uri={$_ENV['SPOTIFY_ACCESS_REDIRECT']}",
-      "grant_type=authorization_code"
+      "code" => $accessCode,
+      "redirect_uri" => $_ENV['SPOTIFY_ACCESS_REDIRECT'],
+      "grant_type" => "authorization_code",
+      "client_id" => $_ENV['SPOTIFY_CLIENT_ID'],
+      "client_secret" => $_ENV['SPOTIFY_CLIENT_SECRET']
     ];
 
-    // Call the Spotify API
-    $curl = curl_init('https://accounts.spotify.com/api/token?' . join('&', $reqArgs));
-    $encodedString = base64_decode($_ENV['SPOTIFY_CLIENT_ID'] . ':' . $_ENV['SPOTIFY_CLIENT_SECRET']);
 
-    curl_setopt($curl, CURLOPT_HTTPHEADER, array(
-      "Authorization: Basic {$encodedString}",
-      "Content-Type: application/x-www-form-urlencoded"
-    ));
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1 );
-
-    $result = curl_exec($curl);
-    $jsonRes = is_string($result) ? json_encode($result) : null;
-    return isset($jsonRes) ? new SpotifyToken($jsonRes['access_token'], $jsonRes['expires_in']) : null;
+    $result = SpotifyHelper::_BodyRequest('POST', $tokenBase, $reqArgs, false);
+    return !isset($result['error']) ? new SpotifyToken($result['access_token'], $result['expires_in']) : null;
   }
 
   public static function SearchArtist(string $query) {
@@ -128,21 +131,22 @@ class SpotifyHelper
     return $result;
   }
 
-  public static function NewPlaylist(string $userId, string $playlistName): string {
+  public static function NewPlaylist(string $userId, string $userToken, string $playlistName): string {
     $trackEndpoint = "/users/{$userId}/playlists";
     $trackBody = [
-      "name={$playlistName}"
+      "name" => $playlistName
     ];
 
     // POST a new playlist to Spotify
-    $playlistPost = SpotifyHelper::_PostRequest($trackEndpoint, $trackBody, true);
+    $bearer = "Bearer {$userToken}";
+    $playlistPost = SpotifyHelper::_BodyRequest('POST', $trackEndpoint, $trackBody, true, true, $bearer);
     if (isset($playlistPost['id'])) {
       return $playlistPost['id'];
     }
-    return 'Error: ' . json_encode($playlistPost);
+    return 'Error: ' . $bearer;
   }
 
-  public static function AddToPlaylist(string $playlistId, array $trackIds): bool {
+  public static function AddToPlaylist(string $userToken, string $playlistId, array $trackIds): bool {
     # Create a list of tracks to add to the playlist
     $trackBase = 'spotify:track:';
     $tracks = $trackBase . join(',' . $trackBase, $trackIds);
@@ -150,10 +154,10 @@ class SpotifyHelper
     # Add the tracks to the playlist
     $trackEndpoint = "/playlists/{$playlistId}/tracks";
     $trackBody = [
-      "uris={$tracks}"
+      "uris" => $tracks
     ];
 
-    $addTracksPost = SpotifyHelper::_PostRequest($trackEndpoint, $trackBody, true);
+    $addTracksPost = SpotifyHelper::_BodyRequest('PUT', $trackEndpoint . '?uris=' . $trackBody['uris'], [], true, true, "Bearer {$userToken}");
     return isset($addTracksPost['snapshot_id']);
   }
 }

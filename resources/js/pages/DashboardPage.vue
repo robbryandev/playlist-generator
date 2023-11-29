@@ -169,30 +169,20 @@ export default defineComponent({
       console.log(bodyTxt);
     },
     async checkPermission() {
-      const checkPermission = async () => {
+      const requestCheck = async () => {
         const check = await fetch('/api/auth/check/access');
         const checkTxt = await check.text();
         console.log(`permission check: ${checkTxt}`);
         return checkTxt === 'true';
       }
-      const res = await checkPermission();
+      const res = await requestCheck();
       console.log(`permission: ${res}`);
       return res;
-    },
-    async debug() {
-      const res = await fetch('/api/debug/cookie');
-      const resTxt = await res.text();
-      return resTxt;
     }
   },
   mounted() {
-    this.debug().then((debugRes) => {
-      console.log(debugRes);
-    }).catch((err) => {
-      console.log(err);
-    });
     this.checkPermission().then((permRes) => {
-      this.hasPermission = permRes;
+      this.hasPermission = permRes === true;
     }).catch((err) => {
       console.log(err);
     });

@@ -87,20 +87,6 @@ Route::group(['middleware' => ['web']], function () {
         }
     });
 
-    Route::get("/debug/cookie", function () {
-        $cached = Cookie::has('access_token');
-        if ($cached) {
-            $tokenCache = Cookie::get('access_token');
-            if (!isset($tokenCache)) {
-                return 'false';
-            }
-            $tokenCookie = json_decode($tokenCache, true);
-            return json_encode($tokenCookie);
-        } else {
-            return 'no cookie';
-        }
-    });
-
     Route::get("/auth/check/access", function (Request $request) {
         if (!Auth::check()) {
             return "false";
@@ -108,11 +94,12 @@ Route::group(['middleware' => ['web']], function () {
         $minutes = 60;
         $user = Auth::getUser();
         $access = $user['spotify_access'];
-        $result = isset($access);
-        if (!$result) {
+        $hasAccess = isset($access);
+        if (!$hasAccess) {
             return 'false';
         }
         $token = null;
+        $cached = false;
         $cached = Cookie::has('access_token');
         if ($cached) {
             $tokenCache = Cookie::get('access_token');
@@ -125,11 +112,12 @@ Route::group(['middleware' => ['web']], function () {
         if (!$cached || isset($token) && $token->expired()) {
             $token = SpotifyHelper::GetUserToken($access);
         }
-        $token = Cookie::has('access_token') ? json_decode(Cookie::get('access_token')) : SpotifyHelper::GetUserToken($access);
+        if (!isset($token) or $token == null) {
+            return 'token false';
+        }
         return response('true')->cookie(
             'access_token', json_encode($token), $minutes
         );
-        //return 'true';
     });
 
     Route::get("/auth/logout", function () {
@@ -146,7 +134,9 @@ Route::group(['middleware' => ['web']], function () {
         $searchResults = json_decode($searchString, true);
 
         if (!isset($searchResults['artists']) or $searchResults['artists']['total'] == 0) {
-            return "0 results found";
+            return json_encode([
+                'error' => 'no results found'
+            ]);
         }
 
         foreach ($searchResults['artists']['items'] as $artist) {
@@ -178,6 +168,7 @@ Route::group(['middleware' => ['web']], function () {
     Route::post("/playlist/save", function (Request $request) {
         $body = $request->getPayload()->all();
         $currentUser = $request->user();
+        $userTokenCookie = json_decode(Cookie::get('access_token'), true);
         if (!isset($body['tracks']) or !is_array($body['tracks'])) {
             return "Required body parameter 'tracks' array not found";
         }
@@ -191,9 +182,9 @@ Route::group(['middleware' => ['web']], function () {
             if (!isset($userId)) {
                 return "Failed to get user id";
             }
-            $playlistId = SpotifyHelper::NewPlaylist($userId, $playlistName);
+            $playlistId = SpotifyHelper::NewPlaylist($userId, $userTokenCookie['token'], $playlistName);
             if (!str_starts_with($playlistId, 'Error')) {
-                $success = SpotifyHelper::AddToPlaylist($playlistId, $tracks);
+                $success = SpotifyHelper::AddToPlaylist($userTokenCookie['token'], $playlistId, $tracks);
                 return $success ? "Added playlist {$playlistName}" : "Failed to add playlist {$playlistName}";
             }
             return "Failed to get playlist id, " . $playlistId;
