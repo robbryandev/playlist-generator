@@ -4,7 +4,6 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="csrf-token" content="{{ csrf_token() }}">
 
   <title>Playlist Generator</title>
 
@@ -21,7 +20,7 @@
       href="/api/auth/logout">Logout</a>
   </div>
   <div id="app">
-    <dashboard-page>
+    <success-page name="{{ app('request')->input('name') }}">
   </div>
 </body>
 

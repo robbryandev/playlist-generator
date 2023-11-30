@@ -30,3 +30,7 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     return AuthenticatedRoute("dashboard", "/");
 });
+
+Route::get('/success', function () {
+    return AuthenticatedRoute("success", "/");
+});
