@@ -4,6 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <title>Playlist Generator</title>
 
   <!-- Fonts -->
@@ -13,16 +14,13 @@
   @vite('resources/js/app.js')
 </head>
 
-<body class="antialiased bg-neutral-800 text-white overflow-y-scroll">
+<body class="antialiased bg-neutral-800 text-white">
   <div class="py-2 px-4">
-    @auth
-    <a href="{{ url('/dashboard') }}"
-      class="font-semibold hover:text-neutral-200 dark:text-gray-400 dark:hover:text-white focus:outline focus:outline-2 focus:rounded-sm">Dashboard</a>
-    @else
-    <a href="/api/auth/redirect"
-      class="font-semibold hover:text-neutral-200 dark:text-gray-400 dark:hover:text-white focus:outline focus:outline-2 focus:rounded-sm">Login
-      with spotify</a>
-    @endauth
+    <a class="font-semibold hover:text-neutral-200 dark:text-gray-400 dark:hover:text-white focus:outline focus:outline-2 focus:rounded-sm"
+      href="/api/auth/logout">Logout</a>
+  </div>
+  <div id="app">
+    <success-page name="{{ app('request')->input('name') }}">
   </div>
 </body>
 

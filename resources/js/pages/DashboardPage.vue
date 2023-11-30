@@ -167,6 +167,9 @@ export default defineComponent({
       });
       const bodyTxt = await bodyTest.text();
       console.log(bodyTxt);
+      if (bodyTxt.startsWith("Added")) {
+        document.location.assign(`/success?name=${encodeURIComponent(this.playlistName)}`)
+      }
     },
     async checkPermission() {
       const requestCheck = async () => {
