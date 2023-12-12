@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  site:
+    build:
+      args:
+        user: playlist_generator
+        uid: 1000
+      context: ./
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: __CHANGE__ME__
+      MYSQL_DATABASE: playlist_generator
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+    ports:
+      - "3306:3306"
+networks:
+  default:
+    name: playlist_generator
